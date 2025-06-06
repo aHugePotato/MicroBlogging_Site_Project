@@ -1,0 +1,752 @@
+html[lang="en-US"] {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.uContent {
+    font-family: serif;
+}
+
+
+* {
+    padding: 0%;
+    margin: 0%;
+    box-sizing: border-box;
+    line-height: 1.25em;
+}
+
+a {
+    text-decoration: none;
+    color: rgb(32, 114, 191);
+
+    &:active {
+        color: rgb(85, 153, 255);
+    }
+}
+
+h1,
+h2,
+h3 {
+    color: rgb(74, 74, 74);
+}
+
+button,
+input[type=button] {
+    border: none;
+    border-radius: 3px;
+    padding: 0.35em;
+    font-size: 0.7em;
+    background-color: rgb(32, 114, 191);
+    color: white;
+
+    & img {
+        height: 0.7em;
+    }
+
+    &:hover {
+        background-color: rgb(26, 93, 155);
+    }
+}
+
+input[type=text],
+input[type=password],
+textarea {
+    font-size: 0.7em;
+    padding: 0.35em;
+    border: 2px solid rgb(227, 227, 227);
+    border-radius: 4px;
+}
+
+.post,
+.comment,
+.user,
+[data-id="postDetail-detail"] {
+    padding: 1.5em;
+    padding-bottom: 0.5em;
+    border: 1px solid;
+    border-color: rgb(232, 232, 232);
+    word-break: break-all;
+}
+
+[data-id="_noContent"] {
+    text-align: center;
+    margin-top: 10em;
+    color: gray;
+}
+
+.post-content,
+[data-id="postDetail-content"] {
+    min-height: 2em;
+}
+
+.post-title,
+[data-id="postDetail-title"] {
+    font-size: 1.2em;
+}
+
+.post-uProfPic,
+.comment-uProfPic,
+.user-uProfPic,
+[data-id="postDetail-uProfPic"] {
+    height: 2em;
+    border-radius: 50%;
+}
+
+.post-uSec,
+.comment-uSec,
+.user-uNameSec,
+[data-id="postDetail-uSec"] {
+    display: flex;
+    align-items: center;
+
+    & a {
+        margin-left: 0.3em;
+        font-size: 1.5em;
+    }
+}
+
+.post-imgs,
+[data-id="postDetail-imgs"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    & a {
+        height: 150px;
+        width: 150px;
+    }
+
+    & img {
+        height: 100%;
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid rgb(227, 227, 227);
+        object-fit: cover;
+    }
+}
+
+.post-actions,
+[data-id="postDetail-actions"] {
+    display: flex;
+    justify-content: space-around;
+
+    & button {
+        background-color: transparent;
+        color: rgb(68, 142, 212);
+
+        &:hover {
+            background-color: transparent;
+            position: relative;
+            top: -0.2em
+        }
+
+        font-size: 1.2em;
+        margin-top: 1em;
+        padding: 0%;
+    }
+}
+
+.post-like,
+[data-id="postDetail-like"] {
+    & img {
+        display: none;
+    }
+
+    &[data-state="0"] {
+        & img[data-for_state="0"] {
+            display: inline-block;
+        }
+    }
+
+    &[data-state="1"] {
+        color: pink;
+
+        & img[data-for_state="1"] {
+            display: inline-block;
+        }
+    }
+
+    &[data-state="2"] {
+        color: #ef3453;
+
+        & img[data-for_state="2"] {
+            display: inline-block;
+        }
+    }
+
+}
+
+.post:hover,
+.user:hover {
+    background-color: rgb(250, 250, 250);
+}
+
+.comment {
+    padding: 1em;
+}
+
+[data-id='loading'] {
+    display: none;
+    text-align: center;
+    padding-top: 40vh;
+    color: gray;
+}
+
+
+[data-id="mainNav"] {
+    position: sticky;
+    top: 0;
+    font-size: 1.5em;
+    text-align: center;
+    padding: 0.5em;
+    background-color: white;
+    box-shadow: 0px 0px 5px 0px grey;
+
+    & ul {
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+    }
+}
+
+
+[data-id="mainNav-rSec"],
+[data-id="mainNav-midSec"],
+[data-id="mainNav-lSec"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-id="mainNav-midSec"] {
+    position: absolute;
+    display: none;
+    top: 0%;
+    left: 0%;
+    height: 100%;
+    width: 100%;
+    background-color: white;
+
+    &[data-open="1"] {
+        display: flex;
+    }
+
+    & button,
+    input {
+        border-radius: 0%;
+    }
+}
+
+input[data-id="_mainNav-searchBox"] {
+    border-top-left-radius: 0.975em;
+    border-bottom-left-radius: 0.975em;
+    padding: 0.35em;
+    padding-left: 1em;
+    border: 2px solid rgb(227, 227, 227);
+}
+
+button[data-id="_mainNav-searchBut"] {
+    border-top-right-radius: 0.975em;
+    border-bottom-right-radius: 0.975em;
+    padding-right: 0.5em;
+    border: 2px solid rgb(32, 114, 191);
+}
+
+[data-id="mainNav-midSecMain"] {
+    justify-content: center;
+    flex-grow: 1;
+}
+
+button[data-id="mainNav-mSearchTog"] {
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    background: transparent;
+    font-size: 1.25em;
+    padding: 0%;
+
+    &:hover {
+        cursor: pointer;
+        background: transparent;
+    }
+}
+
+button[data-id="mainNav-mSearchClose"] {
+    background: transparent;
+    color: grey;
+    flex-basis: 0%;
+
+    &:hover {
+        cursor: pointer;
+        background: transparent;
+    }
+}
+
+button[data-id="_mainNav-signupButton"] {
+    background-color: white;
+    color: rgb(32, 114, 191);
+    border: 2px solid rgb(227, 227, 227);
+    height: 1.95em;
+    padding: calc(0.35em - 2px);
+
+    &:hover {
+        background-color: rgb(225, 225, 225);
+    }
+}
+
+@media only screen and (min-width: 750px) {
+    [data-id="mainNav-midSec"] {
+        position: static;
+        width: auto;
+        height: auto;
+        display: flex;
+    }
+
+    [data-id="mainNav-mSearchClose"] {
+        display: none;
+    }
+
+    [data-id="mainNav-mSearchTog"] {
+        display: none;
+    }
+}
+
+[data-id="mainNav-user-profPic"] {
+    height: 1.4em;
+    border-radius: 50%;
+}
+
+
+[data-id="mPosts"],
+[data-id="searchPage"],
+[data-id="folwingFolwersOf"] {
+    max-width: 750px;
+    margin: auto;
+    box-shadow: 0px 0px 3px 0px rgb(200, 200, 200);
+    min-height: calc(100vh - 100px)
+}
+
+[data-id="mPosts-ctrl"],
+[data-id="searchPage-ctrl"] {
+    display: flex;
+}
+
+[data-id="mPosts-tabsCtrl"],
+[data-id="searchPage-tabsCtrl"] {
+    display: none;
+    font-size: 1.5em;
+    flex-grow: 10;
+
+    & button {
+        flex-grow: 1;
+        flex-basis: 0;
+        text-align: center;
+        border: 1px solid;
+        border-color: rgb(232, 232, 232);
+        font-size: 0.8em;
+        padding: 0.35em;
+        background: transparent;
+        border-radius: 0%;
+        color: rgb(32, 114, 191);
+    }
+
+    & button[data-isactive="1"] {
+        border-bottom: 2px solid rgb(32, 114, 191);
+    }
+
+    & button[data-isactive="0"]:hover {
+        background-color: rgb(250, 250, 250);
+    }
+
+    & button[data-isactive="1"]:hover {
+        background-color: rgb(250, 250, 250);
+    }
+}
+
+button[data-id="mPosts-curTabRefr"],
+[data-id="searchPage-curTabRefr"] {
+    flex-basis: 3em;
+    flex-grow: 1;
+    border-radius: 0;
+    color: black;
+    font-size: 1em;
+    background-color: rgb(250, 250, 250);
+
+    &:hover {
+        background-color: rgb(241, 241, 241);
+    }
+}
+
+[data-id="mPosts-newPostButton"] {
+    & [data-id="mPosts-newPostButSign"] {
+        font-size: 1.6em;
+    }
+
+    font-size: 1em;
+    text-align: center;
+    padding: 0.675em;
+    border-radius: 2.3em;
+    box-shadow: 0px 0px 5px 0px grey;
+    position: fixed;
+    bottom: 1.5em;
+    right: max(1em, calc(50vw - 375px + 1.5em));
+    display: none;
+}
+
+[data-id="mPosts-newPostsSec"] {
+    position: fixed;
+    top: 0%;
+    left: 0%;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: none;
+}
+
+[data-id="mPosts-newPostSec-newPost"] {
+    margin: auto;
+    margin-top: 65px;
+    width: 100%;
+    max-width: min(750px, calc(100vw - 3em));
+    font-size: 1.5em;
+}
+
+[data-id="mPosts-newPostSec-mainCtrls"] {
+    background-color: white;
+    border-radius: 1em;
+    padding: 1em;
+    clear: both;
+}
+
+
+
+[data-id="_mPosts-newPostSec-text"] {
+    width: 100%;
+    height: 280px;
+    resize: none;
+    overflow: scroll;
+    margin-top: 0.5em;
+}
+
+[data-id="_mPosts-newPostSec-title"] {
+    width: 100%;
+    height: 1.55em;
+    overflow: scroll;
+}
+
+[data-id="mPosts-newPostSec-imgsSec"] {
+    padding-top: 0.5em;
+    display: flex;
+}
+
+[data-id="mPosts-newPostSec-imgs"] {
+    display: flex;
+    flex-wrap: wrap;
+    width: max-content;
+
+    & div {
+        margin-right: 10px;
+        height: 100px;
+        width: 100px;
+        position: relative;
+    }
+
+    & img {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        border: 1px solid rgb(227, 227, 227);
+        object-fit: cover;
+    }
+
+    & button {
+        position: absolute;
+        top: 0%;
+        right: 0%;
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.3);
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    }
+}
+
+button[data-id="_mPosts-newPostSec-addImgBut"] {
+    width: 100px;
+    height: 100px;
+    background-color: transparent;
+    color: black;
+    border: dashed 2px rgb(210, 210, 210);
+    border-radius: 8px;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+}
+
+[data-id="_mPosts-newPostSec-send"] {
+    margin-top: 0.5em;
+    margin-left: auto;
+    margin-right: 0%;
+    display: block;
+}
+
+button[data-id="mPosts-newPostSec-close"],
+button[data-id="mPosts-newPostSec-close"]:hover {
+    background-color: transparent;
+    color: white;
+    margin-bottom: 0.5em;
+    float: right;
+}
+
+
+[data-id="searchPage-tabsCtrl"] {
+    display: flex;
+}
+
+
+[data-id="userProf"] {
+    max-width: 750px;
+    margin: auto;
+    box-shadow: 0px 0px 3px 0px rgb(200, 200, 200);
+    min-height: calc(100vh - 100px)
+}
+
+[data-id="userProf-uInfo"] {
+    border-bottom: 1px solid rgb(232, 232, 232);
+    padding: 1em;
+}
+
+[data-id="userProf-uName"] {
+    display: inline-block;
+}
+
+[data-id="_userProf-uPTitle"] {
+    font-size: 1em;
+    margin-top: 0.5em;
+}
+
+[data-id="userProf-uDes"] {
+    padding: 0.3em;
+}
+
+[data-id="userProf-uProfPic"] {
+    height: 140px;
+    border-radius: 50%;
+    margin-bottom: 1em;
+}
+
+button[data-id="_userProf-folButton"] {
+    display: none;
+    font-size: 1.2em;
+    float: right;
+    border-radius: 8px;
+
+    &[data-state="2"] {
+        background-color: white;
+        color: rgb(32, 114, 191);
+        border: 2px solid rgb(227, 227, 227);
+
+        &:hover {
+            background-color: rgb(240, 240, 240);
+        }
+    }
+
+    &[data-state="1"] {
+        background-color: rgb(227, 227, 227);
+        color: gray;
+        border: 2px solid rgb(227, 227, 227);
+    }
+}
+
+button[data-id="_userProf-editButton"] {
+    display: none;
+    float: right;
+    font-size: 1.2em;
+    background-color: white;
+    color: rgb(32, 114, 191);
+    border: 2px solid rgb(227, 227, 227);
+    border-radius: 8px;
+
+    &:hover {
+        background-color: rgb(240, 240, 240);
+    }
+
+}
+
+
+[data-id="loginPage-form"],
+[data-id="signupPage-form"],
+[data-id="uEditPage"]>* {
+    max-width: 350px;
+    margin: auto;
+
+    &>* {
+        width: 100%;
+        display: block;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    & input {
+        font-size: 1.6em;
+    }
+}
+
+[data-id="_loginPage-form-title"],
+[data-id="_signupPage-form-title"],
+[data-id="_uEditPage-form-title"] {
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+}
+
+[data-id="_loginPage-form-button"],
+[data-id="_signupPage-form-button"],
+[data-id="_uEditPage-form-button"] {
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+[data-id="_signupPage-form-pwdConDiff"],
+[data-id="_uEditPage-form-pwdConDiff"] {
+    color: #ef3453;
+    height: 1.25em;
+}
+
+
+[data-id="postDetail"] {
+    max-width: 750px;
+    margin: auto;
+    box-shadow: 0px 0px 3px 0px rgb(200, 200, 200);
+    min-height: calc(100vh - 100px)
+}
+
+[data-id="postDetail-detail"] {
+    font-size: 1.2em;
+}
+
+[data-id="_postDetail-cSecTitle"] {
+    font-size: 1.2em;
+    padding: 0.5em;
+    border: 1px solid;
+    border-color: rgb(232, 232, 232);
+}
+
+[data-id="postDetail-uProfPic"] {
+    height: 2.5em;
+}
+
+[data-id="postDetail-imgs"] a {
+    height: auto;
+    width: auto;
+    flex-basis: calc(50% - 5px);
+}
+
+[data-id="postDetail-nCSec"] {
+    display: none;
+    font-size: 1.5em;
+    padding: 0.4em;
+    border: 1px solid;
+    border-color: rgb(232, 232, 232);
+}
+
+[data-id="_postDetail-nCText"] {
+    flex-grow: 1;
+}
+
+
+[data-id="folwingFolwersOf-headSec"] {
+    display: flex;
+    padding: 1em;
+    width: 100%;
+    align-items: center;
+
+}
+
+button[data-id="folwingFolwersOf-backBut"] {
+    background-color: white;
+    margin-right: 1em;
+    font-size: 2em;
+
+    & img {
+        display: block;
+        height: 1em;
+    }
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+}
+
+
+[data-id="uEditPage"] {
+    width: min(600px, calc(100vw - 2em));
+    margin: auto;
+
+    &>* {
+        max-width: none;
+    }
+}
+
+[data-id="uEditPage-form-pPSec"] {
+    display: flex;
+    align-items: end;
+    gap: 30px;
+    margin-top: 2em;
+    margin-bottom: 2em;
+
+    & input {
+        background-color: white;
+        color: rgb(32, 114, 191);
+        border: 2px solid rgb(227, 227, 227);
+        width: auto;
+        font-size: 1.2em;
+
+        &:hover {
+            background-color: rgb(225, 225, 225);
+        }
+    }
+
+    & [data-id="uEditPage-form-profPic"] {
+        height: 150px;
+        width: 150px;
+        border-radius: 8px;
+        border: 1px solid rgb(227, 227, 227);
+        object-fit: cover;
+    }
+}
+
+[data-id="uEditPage-form-headSec"] {
+    display: flex;
+    align-items: center;
+    margin-top: 1em;
+    margin-bottom: 1em;
+
+    & h1 {
+        width: auto;
+        margin: auto;
+    }
+
+    & button {
+        width: auto;
+        background-color: white;
+        margin-right: 5px;
+        font-size: 2em;
+
+        & img {
+            display: block;
+            height: 1em;
+        }
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+    }
+}
+
+[data-id="_uEditPage-form-des"] {
+    font-size: 1.2em;
+    resize: none;
+    overflow: scroll;
+    height: 10em;
+}

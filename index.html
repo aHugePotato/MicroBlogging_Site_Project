@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/icons/favicon.svg">
+    <link rel="stylesheet" type="text/css" href="/static/stylesheets/style.css">
+    <script defer>
+        "use strict"
+        //data-id: id that allows duplicate
+
+        var localLang = navigator.language || navigator.userLanguage
+        var langRoutes = [
+            { name: "en-US", path: "/static/lang/en.json" },
+            { name: "zh-CN", path: "/static/lang/cn.json" },
+            { name: "ja-JP", path: "/static/lang/ja.json" }
+        ]
+        var dictionary = null
+        function getDictItemAttr(elemId, attr) {
+            //get dictionary (language file) record's attribute value, handle undefined as empty str
+            if (typeof dictionary[elemId] == "undefined")
+                return ""
+            else if (typeof dictionary[elemId][attr] == "undefined")
+                return ""
+            else return dictionary[elemId][attr]
+        }
+
+        var routes = []
+        var activePages = []
+        var isSwitching = false //is switching pages or tabs
+        var uid = null
+
+        var loadingElem
+        var mainElem
+        async function router(dst) {
+            if (isSwitching)
+                return
+
+            isSwitching = true
+            try {
+                if (typeof dst != "undefined")
+                    history.pushState(null, "", dst)
+
+                var curPath = window.location.pathname
+                var i, t
+                for (i = 0; i < activePages.length; i++)
+                    if (activePages[i].path === curPath)
+                        break;
+                if (i < activePages.length) {
+                    if (mainElem.contains(activePages[activePages.length - 1].obj.parent))
+                        mainElem.removeChild(activePages[activePages.length - 1].obj.parent)
+                    loadingElem.style.display = "block"
+                    activePages[activePages.length - 1].obj.onHide()
+                    t = activePages.splice(i, 1)
+                    activePages.push(t[0])
+                    await t[0].obj.onShow()
+                    loadingElem.style.display = "none"
+                    mainElem.appendChild(t[0].obj.parent)
+                }
+                else for (i of routes)
+                    if (i.path.test(curPath)) {
+                        if (activePages.length) {
+                            mainElem.removeChild(activePages[activePages.length - 1].obj.parent)
+                            activePages[activePages.length - 1].obj.onHide()
+                        }
+                        loadingElem.style.display = "block"
+                        t = { path: curPath, obj: new i.cons() }
+                        await t.obj.init()
+                        activePages.push(t)
+                        if (activePages.length > 5)
+                            activePages.shift()
+                        await t.obj.onShow()
+                        loadingElem.style.display = "none"
+                        mainElem.appendChild(t.obj.parent)
+                    }
+            } catch (e) {
+                console.log(e)
+            }
+            console.log(activePages)
+            isSwitching = false
+        }
+
+        function clearCache() {
+            activePages.splice(0, activePages.length - 1)
+        }
+
+        function reloadAll(after) {
+            if (activePages.length) {
+                mainElem.removeChild(activePages[activePages.length - 1].obj.parent)
+                activePages[activePages.length - 1].obj.onHide()
+            }
+            activePages = []
+            mainNav.close()
+            mainNav.init()
+            router(after)
+        }
+
+        async function login(uname, password) {
+
+            var res = await fetch("/api/login/", {
+                method: "post",
+                headers: { "Content-type": "application/json" },
+                body: `{"name":"${uname}","pwd":"${password}"}`
+            })
+            if (res.status == 200) {
+                uid = (await (await fetch("/api/whoami/")).json()).id
+                reloadAll("/")
+            }
+            else
+                throw res.status
+        }
+
+        async function logout() {
+            try {
+                await fetch("/api/logout/")
+            } catch {
+                alert(getDictItemAttr("AErrorLogout", "txt"))
+            }
+            uid = null
+            reloadAll("/")
+        }
+
+
+        var mainNav = {
+            init: async function () {
+                this.parent = document.querySelector("[data-id='mainNav']")
+                this.uSec = this.parent.querySelector("[data-id='mainNav-rSec']")
+
+                this.searchBox = this.parent.querySelector("[data-id='_mainNav-searchBox']")
+                this.searchBut = this.parent.querySelector("[data-id='_mainNav-searchBut']")
+                this.searchBox.placeholder = getDictItemAttr("_mainNav-searchBox", "pH")
+                this.searchBut.innerText = getDictItemAttr("_mainNav-searchBut", "txt")
+                this.searchBut.onclick = () => {
+                    if (this.searchBox.value)
+                        router("/search/" + encodeURIComponent(this.searchBox.value))
+                }
+                this.searchBox.onkeypress = () => {
+                    if (event.key === "Enter" && this.searchBox.value)
+                        router("/search/" + encodeURIComponent(this.searchBox.value))
+                }
+
+                if (uid)
+                    try {
+                        var res = await fetch(`/api/u/${uid}?mode=basic`)
+                        res = await res.json()
+                        this.uSec.innerHTML = `
+                            <img src="${res.prof_pic ? res.prof_pic : "/static/profPics/default.jpg"}" data-id="mainNav-user-profPic">
+                            <a class="ilink" href="/u/${uid}" data-id="mainNav-user-name">&nbsp;${res.name}&nbsp;&nbsp;</a>
+                            <button data-id="_mainNav-loginButton" onclick="logout()">
+                                ${getDictItemAttr("_mainNav-loginButton1", "txt")}
+                            </button>`
+
+                    } catch (e) {
+                        alert(getDictItemAttr("AErrorLoading", "txt"))
+                        console.log(e)
+                    }
+                else
+                    this.uSec.innerHTML = `
+                    <button data-id="_mainNav-loginButton" class="ilink" onclick="router('/login')">
+                        ${getDictItemAttr("_mainNav-loginButton0", "txt")}
+                    </button>
+                    <span>&nbsp;/&nbsp;</span>                    
+                    <button data-id="_mainNav-signupButton" class="ilink" onclick="router('/signup')">
+                        ${getDictItemAttr("_mainNav-signupButton", "txt")}
+                    </button>`
+            },
+            close: function () {
+                this.uSec.innerHTML = ""
+            },
+
+            reload: function () {
+                this.close;
+                this.init()
+            }
+        }
+
+
+        function Posts(par, u, fol, search) {
+            this.parent = par
+            this.lastId = 2147483647
+            this.user = typeof u == "undefined" ? null : u
+            this.following = typeof fol == "undefined" ? null : fol
+            this.search = typeof search == "undefined" ? null : search
+            this.searchOg = this.search ? decodeURIComponent(this.search) : null
+            this.working = false //if data is being fetched
+            this.parent.onclick = this.clickListenerWrapper = e => this.clickListener(e)
+        }
+
+        Posts.prototype.clickListener = async function (e) {
+            if (this.working == false)
+                this.working = true
+            else return
+
+            var postElem
+            var butElem
+            var butElemText
+            if (e.target.matches("a") || e.target.matches("a *")) {
+                this.working = false
+                return
+            }
+            else if (butElem = e.target.closest(".post-like")) {
+                if (!uid) {
+                    alert(getDictItemAttr("AErrorNoLogin", "txt"))
+                    this.working = false;
+                    return
+                }
+                butElemText = butElem.querySelector("span")
+
+                var ogState = butElem.dataset.state
+                butElem.dataset.state = "1"
+                try {
+                    var res = await fetch(`/api/posts/${butElem.closest(".post").dataset.id}/likes/`, { method: ogState == 2 ? "delete" : "post" })
+                    if (res.status != 200)
+                        if (res.status == 401) {
+                            alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                            this.working = false
+                            logout()
+                            return
+                        }
+                        else
+                            throw `status:${res.status}`
+
+                    butElem.dataset.state = ogState == 2 ? "0" : "2"
+
+                    if (ogState == 2)
+                        if (butElemText.innerText == 1)
+                            butElemText.innerText = ""
+                        else
+                            butElemText.innerText--
+                    else
+                        butElemText.innerText++
+                    clearCache()
+                } catch (ex) {
+                    alert(getDictItemAttr("AErrorOccured", "txt"))
+                    butElem.dataset.state = ogState
+                    console.log(ex)
+                }
+            }
+            else if (butElem = e.target.closest(".post-share")) {
+                navigator.clipboard.writeText(window.location.origin + "/posts/" + butElem.closest(".post").dataset.id)
+                alert(getDictItemAttr("ACopied", "txt"))
+            }
+            else if (postElem = e.target.closest(".post"))
+                router("/posts/" + postElem.dataset.id)
+
+            this.working = false
+        }
+
+        Posts.prototype.loadPosts = async function () {
+            if (!this.working && this.lastId)
+                this.working = true
+            else return
+
+            var res
+            try {
+                res = await (await fetch(`/api/posts/?lastId=${this.lastId}`
+                    + (this.user ? `&uid=${this.user}` : "")
+                    + (this.following ? `&following=${this.following}` : "")
+                    + (this.search ? `&search=${this.search}` : "")))
+                    .json()
+                if (!res.posts.length) {
+                    this.lastId = 0
+                    if (!this.parent.querySelector("div"))
+                        this.parent.innerHTML = `<div data-id='_noContent'>${getDictItemAttr("_noContent", "txt")}<div>`
+                    this.working = false
+                    return
+                }
+                let child
+                for (let i of res.posts) {
+                    if (this.search) {
+                        var searchPos = i.text.toLowerCase().indexOf(this.searchOg.toLowerCase())
+                        i.text = i.text.slice(0, searchPos)
+                            + "<mark>" + this.searchOg + "</mark>"
+                            + i.text.slice(searchPos + this.searchOg.length)
+                    }
+                    child = document.createElement("div")
+                    child.className = "post"
+                    child.dataset.id = i.pid
+                    child.innerHTML = `<div class="post-uSec">
+                        <img src="${i.prof_pic ? i.prof_pic : "/static/profPics/default.jpg"}"
+                         class="post-uProfPic">
+                        <a class="ilink" href="/u/${i.uid}">${i.name}</a>
+                        </div>
+                        <br>
+                        <h2 class="post-title uContent">${i.title}</h2>
+                        <p class="post-content uContent">${i.text}${i.oversized ? "<span style='color:grey'> ......<span>" : ""}</p>
+                        <div class="post-imgs"></div>
+                        <div class="post-actions">
+                            <button class="post-like" data-state="${i.liked ? 2 : 0}">
+                                <img data-for_state="0" src="/static/icons/like.svg">
+                                <img data-for_state="1" src="/static/icons/like1.svg">
+                                <img data-for_state="2" src="/static/icons/like2.svg">
+                                <span class="post-likes">${i.likes ? i.likes : ""}</span>
+                            </button>
+                            <button class="post-comment"><img src="/static/icons/comment.svg"> <span class="post-comments">${i.comments ? i.comments : ""}</span></button>
+                            <button class="post-share"><img src="/static/icons/share.svg"></button>
+                        </div>
+                        `
+                    var imgCElem = child.querySelector(".post-imgs")
+                    if (typeof i.imgs != "undefined")
+                        for (let j of i.imgs) {
+                            var imgElem = document.createElement("a")
+                            imgElem.href = j
+                            imgElem.target = "_blank"
+                            imgElem.innerHTML = `<img src="${j}">`
+                            imgCElem.appendChild(imgElem)
+                        }
+
+                    this.parent.appendChild(child)
+                }
+                this.lastId = res.posts[res.posts.length - 1].pid
+            } catch (e) {
+                alert(getDictItemAttr("AErrorLoading", "txt"))
+                console.log(e)
+            }
+            this.working = false
+        }
+
+        Posts.prototype.reload = async function () {
+            this.parent.innerHTML = ""
+            this.lastId = 2147483647
+            this.loadPosts()
+        }
+
+        Posts.prototype.close = function () {
+            this.parent.innerHTML = ""
+        }
+
+
+        function MPost() {
+            this.nPWorking = false
+
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "mPosts" //main posts section
+            this.parent.innerHTML =
+                `
+            <div data-id="mPosts-ctrl">
+                <div data-id="mPosts-tabsCtrl">
+                    <button data-id="_mPosts-tabsCtrl-all" data-isactive="1">${getDictItemAttr("_mPosts-tabsCtrl-all", "txt")}</button>
+                    <button data-id="_mPosts-tabsCtrl-fol" data-isactive="0">${getDictItemAttr("_mPosts-tabsCtrl-fol", "txt")}</button>
+                </div>
+                <button data-id="mPosts-curTabRefr">&#10227;</button>
+            </div>
+            <div data-id="mPosts-postsSec"></div>
+            <div data-id="mPosts-postsFolSec"></div>
+            <button data-id="mPosts-newPostButton">
+                <div data-id="mPosts-newPostButSign">+</div>
+                <div data-id="_mPosts-newPostButTxt">${getDictItemAttr("_mPosts-newPostButTxt", "txt")}</div>
+            </button>
+            <div data-id="mPosts-newPostsSec">
+                <div data-id="mPosts-newPostSec-newPost">
+                    <button data-id="mPosts-newPostSec-close">&#9587;</button>
+                    <div data-id="mPosts-newPostSec-mainCtrls">
+                        <input type="text" data-id="_mPosts-newPostSec-title" placeholder="${getDictItemAttr("_mPosts-newPostSec-title", "pH")}">
+                        <br>
+                        <textarea maxlength="10000" data-id="_mPosts-newPostSec-text" placeholder="${getDictItemAttr("_mPosts-newPostSec-text", "pH")}"></textarea>
+                        <div data-id="mPosts-newPostSec-imgsSec">
+                            <div data-id="mPosts-newPostSec-imgs"></div>
+                            <button data-id="_mPosts-newPostSec-addImgBut">+<br>${getDictItemAttr("_mPosts-newPostSec-addImgBut", "txt")}</button>
+                        </div>
+                        <button data-id="_mPosts-newPostSec-send">${getDictItemAttr("_mPosts-newPostSec-send", "txt")}</button>
+                    </div>
+                </div>
+            </div>
+            `
+
+            this.postsSec = this.parent.querySelector("[data-id='mPosts-postsSec']")
+            this.postsFolSec = this.parent.querySelector("[data-id='mPosts-postsFolSec']")
+            this.postsTabsCtrl = this.parent.querySelector("[data-id='mPosts-tabsCtrl']")
+            this.postsTabsCtrlAll = this.parent.querySelector("[data-id='_mPosts-tabsCtrl-all']")
+            this.postsTabsCtrlFol = this.parent.querySelector("[data-id='_mPosts-tabsCtrl-fol']")
+            this.parent.querySelector("[data-id='mPosts-curTabRefr']").onclick = () => this.shownTab.reload()
+            this.postsTabsCtrl.style.display = "none"
+            this.newPostButton = this.parent.querySelector("[data-id='mPosts-newPostButton']")
+            this.newPostSec = this.parent.querySelector("[data-id='mPosts-newPostsSec']")
+            this.newPostSecTitle = this.newPostSec.querySelector("[data-id='_mPosts-newPostSec-title']")
+            this.newPostSecText = this.newPostSec.querySelector("[data-id='_mPosts-newPostSec-text']")
+            if (uid) {
+                this.newPostSecImgs = this.newPostSec.querySelector("[data-id='mPosts-newPostSec-imgs']")
+                this.newPostSecAddImgBut = this.newPostSec.querySelector("[data-id='_mPosts-newPostSec-addImgBut']")
+                this.newPostSButton = this.parent.querySelector("[data-id='_mPosts-newPostSec-send']")
+                this.newPostCButton = this.parent.querySelector("[data-id='mPosts-newPostSec-close']")
+                this.newPostButton.style.display = "block"
+                this.newPostButton.onclick = () => { this.newPostSec.style.display = "block" }
+                this.newPostCButton.onclick = () => { this.newPostSec.style.display = "none" }
+                this.newPostSButton.onclick = () => this.sendPost()
+                this.newPostSecAddImgBut.onclick = () => this.addImg()
+                this.newPostSecImgs.onclick = (e) => this.remImg(e)
+
+                this.postsTabsCtrl.style.display = "flex"
+                this.postsTabsCtrlAll.dataset.isactive = 1
+                this.postsTabsCtrlFol.dataset.isactive = 0
+                this.postsTabsCtrl.onclick = e => this.tabSwicher(e)
+            }
+            this.postsFolSec.style.display = "none"
+            this.postsSec.style.display = "block"
+            this.postsObj = new Posts(this.postsSec)
+            this.shownTab = this.postsObj
+        }
+
+        MPost.prototype.init = async function () {
+            await this.shownTab.loadPosts()
+        }
+
+        MPost.prototype.scrollListener = function () {
+            if (((window.innerHeight + window.pageYOffset) - document.body.offsetHeight) > -100)
+                this.shownTab.loadPosts()
+        }
+
+        MPost.prototype.tabSwicher = async function (e) {
+            if (e.target.dataset.id == "_mPosts-tabsCtrl-fol") {
+                if (typeof this.postsFolObj == "undefined" || !this.postsFolObj) {
+                    this.postsFolObj = new Posts(this.postsFolSec, null, "true")
+                    await this.postsFolObj.loadPosts()
+                }
+                this.shownTab = this.postsFolObj
+                this.postsSec.style.display = "none"
+                this.postsFolSec.style.display = "block"
+                e.target.dataset.isactive = 1
+                this.postsTabsCtrlAll.dataset.isactive = 0
+            }
+            else if (e.target.dataset.id == "_mPosts-tabsCtrl-all") {
+                this.shownTab = this.postsObj
+                this.postsFolSec.style.display = "none"
+                this.postsSec.style.display = "block"
+                e.target.dataset.isactive = 1
+                this.postsTabsCtrlFol.dataset.isactive = 0
+            }
+        }
+
+        MPost.prototype.addImg = async function () {
+            try {
+                const selection = await window.showOpenFilePicker({
+                    types: [
+                        {
+                            description: "Images",
+                            accept: {
+                                "image/*": [],
+                            },
+                        },
+                    ],
+                    excludeAcceptAllOption: true,
+                    multiple: false,
+                });
+                if (selection.length > 0) {
+                    const file = await selection[0].getFile();
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => {
+                        var imgElemWrapper = document.createElement("div")
+                        imgElemWrapper.innerHTML = `<img src=${e.target.result}><button>&#9587;</button>`
+                        this.newPostSecImgs.appendChild(imgElemWrapper)
+                        if (this.newPostSecImgs.querySelectorAll("img").length == 2)
+                            this.newPostSecAddImgBut.style.display = "none"
+                    }
+                }
+            } catch (e) { }
+        }
+        MPost.prototype.remImg = async function (e) {
+            if (e.target.matches("button"))
+                this.newPostSecImgs.removeChild(e.target.parentNode)
+            this.newPostSecAddImgBut.style.display = "block"
+        }
+
+        MPost.prototype.sendPost = async function () {
+            if (!this.nPWorking)
+                this.nPWorking = true
+            else return
+            try {
+                var reqBody = {
+                    title: this.newPostSecTitle.value,
+                    text: this.newPostSecText.value,
+                    imgs: []
+                }
+                this.newPostSecImgs.querySelectorAll("img").forEach(i => reqBody.imgs.push(i.src.split("base64,")[1]))
+
+                var res = await fetch("/api/posts/", {
+                    method: "post",
+                    headers: { "Content-type": "application/json" },
+                    body: JSON.stringify(reqBody)
+                })
+                if (res.status == 200 || res.status == 202) {
+                    alert(getDictItemAttr("ASent", "txt"))
+                    this.newPostSecTitle.value = ""
+                    this.newPostSecText.value = ""
+                    this.newPostSec.style.display = "none"
+                    this.newPostSecImgs.innerHTML = ""
+                    this.newPostSecAddImgBut.style.display = "block"
+                    clearCache()
+                    this.postsObj.reload()
+                }
+                else if (res.status == 400)
+                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                else if (res.status == 401) {
+                    alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                    this.nPWorking = false;
+                    logout()
+                    return
+                }
+                else
+                    alert(getDictItemAttr("AErrorSending", "txt"))
+            } catch (e) {
+                alert(getDictItemAttr("AErrorSending", "txt"))
+                console.log(e)
+            }
+            this.nPWorking = false;
+        }
+
+        MPost.prototype.onShow = function () { //before show
+            document.title = "Posts"
+            window.addEventListener("scroll", this.scrollListenerWrapper = e => this.scrollListener(e))
+        }
+        MPost.prototype.onHide = function () { //after hide
+            window.removeEventListener("scroll", this.scrollListenerWrapper)
+        }
+
+
+        function SearchPage() {
+            this.nPWorking = false
+
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "searchPage" //main results section
+            this.parent.innerHTML =
+                `
+            <div data-id="searchPage-ctrl">
+                <div data-id="searchPage-tabsCtrl">
+                    <button data-id="_searchPage-tabsCtrl-posts" data-isactive="1">${getDictItemAttr("_searchPage-tabsCtrl-posts", "txt")}</button>
+                    <button data-id="_searchPage-tabsCtrl-users" data-isactive="0">${getDictItemAttr("_searchPage-tabsCtrl-users", "txt")}</button>
+                </div>
+                <button data-id="searchPage-curTabRefr">&#10227;</button>
+            </div>
+            <div data-id="searchPage-postsSec"></div>
+            <div data-id="searchPage-usersSec"></div>
+            `
+
+            var pathLen = window.location.pathname.length
+            var baseLen = "/search/".length
+            this.searchParam = window.location.pathname.substr(baseLen, pathLen - baseLen)
+            this.postsSec = this.parent.querySelector("[data-id='searchPage-postsSec']")
+            this.usersSec = this.parent.querySelector("[data-id='searchPage-usersSec']")
+            this.searchTabsCtrl = this.parent.querySelector("[data-id='searchPage-tabsCtrl']")
+            this.searchTabsCtrlPosts = this.parent.querySelector("[data-id='_searchPage-tabsCtrl-posts']")
+            this.searchTabsCtrlUsers = this.parent.querySelector("[data-id='_searchPage-tabsCtrl-users']")
+            this.parent.querySelector("[data-id='searchPage-curTabRefr']").onclick = () => this.shownTab.reload()
+            this.usersSec.style.display = "none"
+            this.postsSec.style.display = "block"
+            this.searchTabsCtrlPosts.dataset.isactive = 1
+            this.searchTabsCtrlUsers.dataset.isactive = 0
+            this.searchTabsCtrl.onclick = e => this.tabSwicher(e)
+            this.postsObj = new Posts(this.postsSec, null, null, this.searchParam)
+            this.shownTab = this.postsObj
+        }
+
+        SearchPage.prototype.init = async function () {
+            await (this.shownTab instanceof Posts) ? this.shownTab.loadPosts() : this.shownTab.loadUsers()
+        }
+
+        SearchPage.prototype.scrollListener = function () {
+            if (((window.innerHeight + window.pageYOffset) - document.body.offsetHeight) > -100)
+                (this.shownTab instanceof Posts) ? this.shownTab.loadPosts() : this.shownTab.loadUsers()
+        }
+
+        SearchPage.prototype.tabSwicher = async function (e) {
+            if (e.target.dataset.id == "_searchPage-tabsCtrl-users") {
+                if (typeof this.usersObj == "undefined" || !this.usersObj) {
+                    this.usersObj = new Users(this.usersSec, null, null, this.searchParam)
+                    await this.usersObj.loadUsers()
+                }
+                this.shownTab = this.usersObj
+                this.postsSec.style.display = "none"
+                this.usersSec.style.display = "block"
+                e.target.dataset.isactive = 1
+                this.searchTabsCtrlPosts.dataset.isactive = 0
+            }
+            else if (e.target.dataset.id == "_searchPage-tabsCtrl-posts") {
+                this.shownTab = this.postsObj
+                this.usersSec.style.display = "none"
+                this.postsSec.style.display = "block"
+                e.target.dataset.isactive = 1
+                this.searchTabsCtrlUsers.dataset.isactive = 0
+            }
+        }
+
+        SearchPage.prototype.onShow = function () { //before show
+            document.title = "Posts"
+            window.addEventListener("scroll", this.scrollListenerWrapper = e => this.scrollListener(e))
+        }
+        SearchPage.prototype.onHide = function () { //after hide
+            window.removeEventListener("scroll", this.scrollListenerWrapper)
+        }
+
+
+        function Users(par, followingOf, followersOf, search) {
+            this.parent = par
+            this.lastId = 2147483647
+            this.followingOf = typeof followingOf == "undefined" ? null : followingOf
+            this.followersOf = typeof followersOf == "undefined" ? null : followersOf
+            this.search = typeof search == "undefined" ? null : search
+            this.working = false //if data is being fetched
+            this.parent.onclick = this.clickListenerWrapper = e => this.clickListener(e)
+        }
+
+        Users.prototype.clickListener = async function (e) {
+            var userElem
+            if (userElem = e.target.closest(".user"))
+                router("/u/" + userElem.dataset.uid)
+        }
+
+        Users.prototype.loadUsers = async function () {
+            if (!this.working && this.lastId)
+                this.working = true
+            else return
+
+            var res
+            try {
+                res = await (await fetch(`/api/u/?lastId=${this.lastId}`
+                    + (this.followingOf ? `&followingOf=${this.followingOf}` : "")
+                    + (this.followersOf ? `&followersOf=${this.followersOf}` : "")
+                    + (this.search ? `&search=${this.search}` : "")))
+                    .json()
+                if (!res.users.length) {
+                    this.lastId = 0
+                    if (!this.parent.querySelector("div"))
+                        this.parent.innerHTML = `<div data-id='_noContent'>${getDictItemAttr("_noContent", "txt")}<div>`
+                    this.working = false
+                    return
+                }
+                let child
+                for (let i of res.users) {
+                    child = document.createElement("div")
+                    child.className = "user"
+                    child.dataset.uid = i.uid
+                    child.innerHTML = `
+                        <div class="user-uNameSec">
+                            <img src="${i.prof_pic ? i.prof_pic : "/static/profPics/default.jpg"}"
+                             class="user-uProfPic">
+                            <a class="ilink" href="/u/${i.uid}">${i.name}</a>
+                        </div>
+                        <br>
+                        <p class="user-des">${i.description ? i.description : "--"}</p>
+                        `
+                    this.parent.appendChild(child)
+                }
+                this.lastId = res.users[res.users.length - 1].uid
+            } catch (e) {
+                alert(getDictItemAttr("AErrorLoading", "txt"))
+                console.log(e)
+            }
+            this.working = false
+        }
+
+        Users.prototype.reload = async function () {
+            this.parent.innerHTML = ""
+            this.lastId = 2147483647
+            this.loadUsers()
+        }
+
+        Users.prototype.close = function () {
+            this.parent.innerHTML = ""
+        }
+
+
+        function folwingFolwersOf() {
+            this.params = window.location.pathname.split("/")
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "folwingFolwersOf"
+            this.parent.innerHTML =
+                `
+                <div data-id="folwingFolwersOf-headSec">
+                    <button data-id="folwingFolwersOf-backBut"><img src='/static/icons/back.svg'></button>
+                    <h1 data-id="_folwingFolwersOf-title">${getDictItemAttr(this.params[3] == "following" ? "_folwingFolwersOf-title0"
+                    : (this.params[3] == "followers" ? "_folwingFolwersOf-title1" : ""), "txt")}</h1>
+                </div>
+                <div data-id="folwingFolwersOf-usersSec"></div>
+            `
+            this.parent.querySelector("[data-id='folwingFolwersOf-backBut']").onclick = () => window.history.back()
+            this.userObj = new Users(this.parent.querySelector("[data-id='folwingFolwersOf-usersSec']")
+                , /following\/?/.test(this.params[3]) ? this.params[2] : null
+                , /followers\/?/.test(this.params[3]) ? this.params[2] : null
+            )
+        }
+
+        folwingFolwersOf.prototype.init = async function () {
+            await this.userObj.loadUsers()
+        }
+
+        folwingFolwersOf.prototype.scrollListener = function () {
+            if (((window.innerHeight + window.pageYOffset) - document.body.offsetHeight) > -100)
+                this.userObj.loadUsers()
+        }
+
+        folwingFolwersOf.prototype.onShow = function () { //before show
+            document.title = /following\/?/.test(this.params[3]) ? "Follwing" : "Followers"
+            window.addEventListener("scroll", this.scrollListenerWrapper = e => this.scrollListener(e))
+        }
+        folwingFolwersOf.prototype.onHide = function () { //after hide
+            window.removeEventListener("scroll", this.scrollListenerWrapper)
+        }
+
+
+        function UserProf() {
+            this.following = false
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "userProf"
+        }
+
+        UserProf.prototype.scrollListener = function () {
+            if (((window.innerHeight + window.pageYOffset) - document.body.offsetHeight) > -100 && typeof this.postsObj != "undefined")
+                this.postsObj.loadPosts()
+        }
+
+        UserProf.prototype.followUnfol = async function (e) {
+            if (this.following == false)
+                this.following = true
+            else return
+
+            var ogState = e.target.dataset.state
+            e.target.dataset.state = "1"
+            try {
+                var res
+                if (ogState == 0)
+                    res = await fetch(`/api/u/${uid}/following/`, {
+                        method: "post",
+                        headers: { "Content-type": "application/json" },
+                        body: `{"uid":"${this.uid}"}`
+                    })
+                else if (ogState == 2)
+                    res = await fetch(`/api/u/${uid}/following/${this.uid}/`, {
+                        method: "delete"
+                    })
+                else throw -1
+
+                if (res.status != 200)
+                    throw `status:${res.status}`
+
+                e.target.dataset.state = ogState == 2 ? "0" : "2"
+                e.target.innerText = ogState == 2 ? "+ " + getDictItemAttr("_userProf-folButton0", "txt") : getDictItemAttr("_userProf-folButton1", "txt")
+                clearCache()
+            } catch (ex) {
+                alert(getDictItemAttr("AErrorOccured", "txt"))
+                e.target.dataset.state = ogState
+                console.log(ex)
+            }
+            this.following = false
+            this.load()
+        }
+
+        UserProf.prototype.init = async function () {
+            this.uid = window.location.pathname.split("/")[2]
+            this.parent.innerHTML =
+                `
+                <div data-id="userProf-uInfo">
+                    <img data-id="userProf-uProfPic">
+                    <div>
+                        <h1 data-id="userProf-uName"></h1>
+                        <button data-id="_userProf-folButton"></button>
+                        <button data-id="_userProf-editButton">${getDictItemAttr("_userProf-editButton", "txt")}</button>
+                    </div>
+                    <a data-id="_userProf-uFolwngs" class="ilink"></a> / <a data-id="_userProf-uFolwers" class="ilink"></a>
+                    <p data-id="userProf-uDes"></p>
+                    <h1 data-id="_userProf-uPTitle"></h1>
+                </div>
+                <div data-id="userProf-uPosts">
+                </div>
+                `
+            this.uPUProfPic = this.parent.querySelector("[data-id='userProf-uProfPic']")
+            this.uPFolBut = this.parent.querySelector("[data-id='_userProf-folButton']")
+            this.uPEditBut = this.parent.querySelector("[data-id='_userProf-editButton']")
+            this.uPFolwngs = this.parent.querySelector("[data-id='_userProf-uFolwngs']")
+            this.uPFolwers = this.parent.querySelector("[data-id='_userProf-uFolwers']")
+            this.uPUName = this.parent.querySelector("[data-id='userProf-uName']")
+            this.uPUDes = this.parent.querySelector("[data-id='userProf-uDes']")
+            this.uPUPTitle = this.parent.querySelector("[data-id='_userProf-uPTitle']")
+            await this.load()
+            await this.postsObj.loadPosts()
+        }
+
+        UserProf.prototype.load = async function () {
+            try {
+                var res
+                res = await (await fetch(`/api/u/${this.uid}/`)).json()
+                this.uname = res.name
+                this.uPUProfPic.src = res.prof_pic ? res.prof_pic : "/static/profPics/default.jpg"
+                this.uPUName.innerText = res.name
+                this.uPUDes.innerText = res.description ? res.description : "--"
+                this.uPUPTitle.innerText = res.name + getDictItemAttr("_userProf-uPTitle", "txt")
+                this.uPFolwngs.innerText = res.followings + getDictItemAttr("_userProf-uFolwngs", "txt")
+                this.uPFolwngs.href = `/u/${this.uid}/following`
+                this.uPFolwers.innerText = res.followers + getDictItemAttr("_userProf-uFolwers", "txt")
+                this.uPFolwers.href = `/u/${this.uid}/followers`
+                if (uid)
+                    if (uid != this.uid) {
+                        this.uPFolBut.style.display = "block"
+                        this.uPFolBut.dataset.state = res.is_following ? "2" : "0"
+                        this.uPFolBut.innerText = res.is_following ? getDictItemAttr("_userProf-folButton1", "txt") : "+ " + getDictItemAttr("_userProf-folButton0", "txt")
+                        this.uPFolBut.onclick = e => this.followUnfol(e)
+                    } else {
+                        this.uPEditBut.style.display = "block"
+                        this.uPEditBut.onclick = e => router(`/u/${this.uid}/edit/`)
+                    }
+                this.postsObj = new Posts(this.parent.querySelector("[data-id='userProf-uPosts']"), this.uid)
+            }
+            catch (e) {
+                alert(getDictItemAttr("AErrorLoading", "txt"))
+                console.log(e)
+                throw e
+            }
+        }
+
+        UserProf.prototype.onShow = function () {
+            window.addEventListener("scroll", this.scrollListenerWrapper = e => this.scrollListener(e))
+            document.title = this.uname
+        }
+        UserProf.prototype.onHide = function () {
+            window.removeEventListener("scroll", this.scrollListenerWrapper)
+        }
+
+
+        function LoginPage() {
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "loginPage"
+            this.parent.innerHTML =
+                `
+                <form data-id="loginPage-form">
+                    <h1 data-id="_loginPage-form-title">${getDictItemAttr("_loginPage-form-title", "txt")}</h1>
+                    <label for="_loginPage-form-uname" data-id="_loginPage-form-unameL">${getDictItemAttr("_loginPage-form-unameL", "txt")}</label>
+                    <input data-id="_loginPage-form-uname" type="text" placeholder="${getDictItemAttr("_loginPage-form-uname", "pH")}">
+                    <label for="_loginPage-form-pwd" data-id="_loginPage-form-pwdL">${getDictItemAttr("_loginPage-form-pwdL", "txt")}</label>
+                    <input data-id="_loginPage-form-pwd" type="password" placeholder="${getDictItemAttr("_loginPage-form-pwd", "pH")}">
+                    <input data-id="_loginPage-form-button" type="button" value="${getDictItemAttr("_loginPage-form-button", "value")}">
+                </form>
+                `
+            this.unameField = this.parent.querySelector("[data-id='_loginPage-form-uname']")
+            this.pwdField = this.parent.querySelector("[data-id='_loginPage-form-pwd']")
+            this.parent.querySelector("[data-id='_loginPage-form-button']").onclick = () => { this.userLogin() }
+        }
+
+        LoginPage.prototype.onShow = function () { }
+        LoginPage.prototype.onHide = function () {
+            this.unameField.value = ""
+            this.pwdField.value = ""
+        }
+
+        LoginPage.prototype.init = function () { }
+
+        LoginPage.prototype.userLogin = async function () {
+            var uname = this.unameField.value
+            var password = this.pwdField.value
+            if (uname === "") {
+                alert(getDictItemAttr("AErrorIncompCred", "txt"))
+                return
+            }
+            try {
+                await login(uname, password)
+            } catch (e) {
+                if (e === 401)
+                    alert(getDictItemAttr("AErrorWrongCred", "txt"))
+                else
+                    alert(getDictItemAttr("AErrorLogin", "txt"))
+                console.log(e)
+            }
+        }
+
+
+        function SignupPage() {
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "signupPage"
+            this.parent.innerHTML =
+                `
+                <form data-id="signupPage-form">
+                    <h1 data-id="_signupPage-form-title">${getDictItemAttr("_signupPage-form-title", "txt")}</h1>
+                    <label for="_signupPage-form-uname" data-id="_signupPage-form-unameL">${getDictItemAttr("_signupPage-form-unameL", "txt")}</label>
+                    <input data-id="_signupPage-form-uname" type="text" placeholder="${getDictItemAttr("_signupPage-form-uname", "pH")}">
+                    <label for="_signupPage-form-email" data-id="_signupPage-form-emailL">${getDictItemAttr("_signupPage-form-emailL", "txt")}</label>
+                    <input data-id="_signupPage-form-email" type="text" placeholder="${getDictItemAttr("_signupPage-form-email", "pH")}">
+                    <label for="_signupPage-form-pwd" data-id="_signupPage-form-pwdL">${getDictItemAttr("_signupPage-form-pwdL", "txt")}</label>
+                    <input data-id="_signupPage-form-pwd" type="password" placeholder="${getDictItemAttr("_signupPage-form-pwd", "pH")}">
+                    <label for="_signupPage-form-pwdCon" data-id="_signupPage-form-pwdConL">${getDictItemAttr("_signupPage-form-pwdConL", "txt")}</label>
+                    <input data-id="_signupPage-form-pwdCon" type="password" placeholder="${getDictItemAttr("_signupPage-form-pwdCon", "pH")}">
+                    <p data-id="_signupPage-form-pwdConDiff"></p>
+                    <input data-id="_signupPage-form-button" type="button" value="${getDictItemAttr("_signupPage-form-button", "value")}">
+                </form>
+                `
+            this.unameField = this.parent.querySelector("[data-id='_signupPage-form-uname']")
+            this.emailField = this.parent.querySelector("[data-id='_signupPage-form-email']")
+            this.pwdField = this.parent.querySelector("[data-id='_signupPage-form-pwd']")
+            this.pwdCField = this.parent.querySelector("[data-id='_signupPage-form-pwdCon']")
+            this.pwdCDiff = this.parent.querySelector("[data-id='_signupPage-form-pwdConDiff']")
+            this.parent.querySelector("[data-id='_signupPage-form-button']").onclick = () => { this.userSignup() }
+            this.pwdCField.oninput = () => this.pwdCDiff.innerText = this.pwdField.value != this.pwdCField.value ? getDictItemAttr("_signupPage-form-pwdConDiff", "txt") : ""
+        }
+
+        SignupPage.prototype.onShow = function () { }
+        SignupPage.prototype.onHide = function () {
+            this.unameField.value = ""
+            this.emailField.value = ""
+            this.pwdField.value = ""
+            this.pwdCField.value = ""
+        }
+
+        SignupPage.prototype.init = function () { }
+
+        SignupPage.prototype.userSignup = async function () {
+            if (this.unameField.value == "" || this.emailField.value == ""
+                || this.pwdCField.value != this.pwdField.value) {
+                alert(getDictItemAttr("AErrorWrongRegCred", "txt"))
+                return
+            }
+            try {
+                var res = await fetch("/api/u/", {
+                    method: "post",
+                    headers: { "Content-type": "application/json" },
+                    body: `{"name":"${this.unameField.value}","email":"${this.emailField.value}","password":"${this.pwdField.value}"}`
+                })
+                if (res.status == 200) {
+                    alert(getDictItemAttr("AErrorRegisterSucc", "txt"))
+                    router("/login")
+                }
+                else if (res.status == 409)
+                    alert(getDictItemAttr("AErrorNameTaken", "txt"))
+                else
+                    alert(getDictItemAttr("AErrorWrongRegCred", "txt"))
+            } catch (e) {
+                alert(getDictItemAttr("AErrorOccured", "txt"))
+                console.log(e)
+            }
+        }
+
+
+        function uEditPage() {
+            this.patching = false
+            this.uid = window.location.pathname.split("/")[2]
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "uEditPage"
+            this.parent.innerHTML =
+                `<div data-id="uEditPage-form-headSec">
+                        <button data-id="uEditPage-form-backBut"><img src='/static/icons/back1.svg'></button>
+                        <h1 data-id="_uEditPage-form-title">${getDictItemAttr("_uEditPage-form-title", "txt")}</h1>
+                </div>
+                <form data-id="uEditPage-form" autocomplete="off">
+                    <div data-id="uEditPage-form-pPSec">
+                        <img data-id="uEditPage-form-profPic">
+                        <input type="button" data-id="_uEditPage-form-pPchange" value="${getDictItemAttr("_uEditPage-form-imgChangeBut", "value")}"> 
+                    </div>
+                    <label for="_uEditPage-form-uname" data-id="_uEditPage-form-unameL">${getDictItemAttr("_uEditPage-form-unameL", "txt")}</label>
+                    <input name="uname" data-id="_uEditPage-form-uname" type="text" placeholder="${getDictItemAttr("_uEditPage-form-uname", "pH")}">
+                    <label for="_uEditPage-form-des" data-id="_uEditPage-form-desL">${getDictItemAttr("_uEditPage-form-desL", "txt")}</label>
+                    <textarea name="des" data-id="_uEditPage-form-des" type="text" maxlength="296" placeholder="${getDictItemAttr("_uEditPage-form-des", "pH")}"></textarea>
+                    <label for="_uEditPage-form-email" data-id="_uEditPage-form-emailL">${getDictItemAttr("_uEditPage-form-emailL", "txt")}</label>
+                    <input name="email" data-id="_uEditPage-form-email" type="text" placeholder="${getDictItemAttr("_uEditPage-form-email", "pH")}">
+                    <label for="_uEditPage-form-pwd" data-id="_uEditPage-form-pwdL">${getDictItemAttr("_uEditPage-form-pwdL", "txt")}</label>
+                    <input name="pwd" data-id="_uEditPage-form-pwd" type="password" placeholder="${getDictItemAttr("_uEditPage-form-pwd", "pH")}">
+                    <label for="_uEditPage-form-pwdCon" data-id="_uEditPage-form-pwdConL">${getDictItemAttr("_uEditPage-form-pwdConL", "txt")}</label>
+                    <input name="pwdCon" data-id="_uEditPage-form-pwdCon" type="password" placeholder="${getDictItemAttr("_uEditPage-form-pwdCon", "pH")}">
+                    <p data-id="_uEditPage-form-pwdConDiff"></p>
+                    <label for="_uEditPage-form-pwdCur" data-id="_uEditPage-form-pwdCurL">${getDictItemAttr("_uEditPage-form-pwdCurL", "txt")}</label>
+                    <input name="pwdCur" data-id="_uEditPage-form-pwdCur" type="password" placeholder="${getDictItemAttr("_uEditPage-form-pwdCur", "pH")}">
+                    <input name="submit" data-id="_uEditPage-form-button" type="button" value="${getDictItemAttr("_uEditPage-form-button", "value")}">
+                </form>
+                `
+            this.profPic = this.parent.querySelector("[data-id='uEditPage-form-profPic']")
+            this.pPchangeBut = this.parent.querySelector("[data-id='_uEditPage-form-pPchange']")
+            this.pwdCDiff = this.parent.querySelector("[data-id='_uEditPage-form-pwdConDiff']")
+            this.form = this.parent.querySelector("form")
+            this.form["submit"].onclick = () => { this.userPatch() }
+            this.form["pwdCon"].oninput = () => this.pwdCDiff.innerText = this.form["pwd"].value != this.form["pwdCon"].value ? getDictItemAttr("_uEditPage-form-pwdConDiff", "txt") : ""
+            this.parent.querySelector("[data-id='uEditPage-form-backBut']").onclick = () => window.history.back()
+            this.pPchangeBut.onclick = async () => {
+                try {
+                    const selection = await window.showOpenFilePicker({
+                        types: [
+                            {
+                                description: "Images",
+                                accept: {
+                                    "image/*": [],
+                                },
+                            },
+                        ],
+                        excludeAcceptAllOption: true,
+                        multiple: false,
+                    });
+                    if (selection.length > 0) {
+                        const file = await selection[0].getFile();
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = (e) => this.profPic.src = e.target.result
+                        this.profPic.dataset.changed = true
+                    }
+                } catch (e) { }
+            }
+            this.form.addEventListener("input", e => {
+                if (e.target.matches("input[type=text],input[type=password],textarea"))
+                    e.target.dataset.changed = true
+            })
+        }
+
+        uEditPage.prototype.load = async function () {
+
+            this.form.querySelectorAll("input[type=text],input[type=password],textarea,[data-id='uEditPage-form-profPic']").forEach(e => {
+                if (e.matches("input[type=text],input[type=password],textarea"))
+                    e.value = ""
+                e.dataset.changed = ""
+            })
+            try {
+                var res = await fetch(`/api/u/${this.uid}/?mode=full`)
+                if (res.status != 200) {
+                    if (res.status == 401) {
+                        alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                        logout()
+                        exit;
+                    }
+                    else {
+                        alert(getDictItemAttr("AErrorLoading", "txt"))
+                        return
+                    }
+                }
+                var jobj = await res.json()
+                this.form["uname"].value = jobj.name ? jobj.name : ""
+                this.form["des"].value = jobj.description ? jobj.description : ""
+                this.form["email"].value = jobj.email ? jobj.email : ""
+                this.form["pwd"].value = "********************"
+                this.form["pwdCon"].value = "********************"
+                this.profPic.src = jobj.prof_pic ? jobj.prof_pic : "/static/profPics/default.jpg"
+
+            } catch (e) {
+                alert(getDictItemAttr("AErrorLoading", "txt"))
+                throw e
+            }
+        }
+
+        uEditPage.prototype.onShow = async function () {
+            await this.load()
+        }
+        uEditPage.prototype.onHide = function () {
+        }
+
+        uEditPage.prototype.init = async function () {
+        }
+
+        uEditPage.prototype.userPatch = async function () {
+            if (!this.patching)
+                this.patching = true
+            else return
+            try {
+                var reqBody = { user: {}, password: this.form["pwdCur"].value }
+                if (this.form["pwd"].value != this.form["pwdCon"].value) {
+                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                    this.form["pwdCon"].oninput()
+                    this.patching = false
+                    return
+                }
+
+                if (this.form["uname"].dataset.changed)
+                    reqBody.user.name = this.form["uname"].value
+                if (this.form["des"].dataset.changed)
+                    reqBody.user.description = this.form["des"].value
+                if (this.form["email"].dataset.changed)
+                    reqBody.user.email = this.form["email"].value
+                if (this.form["pwd"].dataset.changed)
+                    reqBody.user.password = this.form["pwd"].value
+                if (this.profPic.dataset.changed)
+                    reqBody.user.prof_pic = this.profPic.src.split("base64,")[1]
+
+                if (!Object.keys(reqBody.user).length) {
+                    alert(getDictItemAttr("AErrorNoChange", "txt"))
+                    this.patching = false
+                    return
+                }
+
+                var res = await fetch(`/api/u/${this.uid}/`, {
+                    method: "PATCH",
+                    headers: { "Content-type": "application/json" },
+                    body: JSON.stringify(reqBody)
+                })
+                if (res.status == 200 || res.status == 202) {
+                    clearCache()
+                    mainNav.reload()
+                    window.history.back()
+                    this.patching = false
+                    return
+                } else if (res.status == 400)
+                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                else if (res.status == 403)
+                    alert(getDictItemAttr("AErrorWrongPass", "txt"))
+                else if (res.status == 401) {
+                    alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                    this.patching = false;
+                    logout()
+                    return
+                } else if (res.status == 409) {
+                    alert(getDictItemAttr("AErrorNameTaken", "txt"))
+                }
+                else
+                    alert(getDictItemAttr("AErrorOccured", "txt"))
+            } catch (e) {
+                alert(getDictItemAttr("AErrorOccured", "txt"))
+                console.log(e)
+            }
+            this.patching = false;
+        }
+
+
+        function PostDetail() {
+            this.liking = false
+            this.loadingCom = false
+            this.sending = false
+            this.parent = document.createElement("div")
+            this.parent.dataset.id = "postDetail"
+        }
+
+        PostDetail.prototype.init = async function () {
+            this.pid = window.location.pathname.split("/")[2]
+            this.parent.innerHTML =
+                `
+                <div data-id="postDetail-detail">
+                    <div data-id="postDetail-uSec">
+                        <img data-id="postDetail-uProfPic" src="/static/profPics/default.jpg">
+                        <a data-id="postDetail-uName" class="ilink"></a>
+                    </div>
+                    <br>
+                    <h1 data-id="postDetail-title" class="uContent"></h1>
+                    <p data-id="postDetail-content" class="uContent"></p>
+                    <div data-id="postDetail-imgs"></div>
+                    <div data-id="postDetail-actions">
+                            <button data-id="postDetail-like">
+                                <img data-for_state="0" src="/static/icons/like.svg">
+                                <img data-for_state="1" src="/static/icons/like1.svg">
+                                <img data-for_state="2" src="/static/icons/like2.svg">
+                                <span data-id="postDetail-likes"></span>
+                            </button>
+                        <button data-id="postDetail-share"><img data-id="postDetail-share-img" src="/static/icons/share.svg"></button>
+                    </div>
+                </div>
+                <h2 data-id="_postDetail-cSecTitle">Comments:</h2>
+                <div data-id="postDetail-nCSec">
+                    <input type="text" data-id="_postDetail-nCText" placeholder="${getDictItemAttr("_postDetail-nCText", "pH")}">
+                    <button data-id="_postDetail-nCSend">${getDictItemAttr("_postDetail-nCSend", "txt")}</button>
+                </div>
+                <div data-id="postDetail-newComSec"></div>
+                <div data-id="postDetail-comments"></div>
+                `
+            this.pDUProfPic = this.parent.querySelector("[data-id='postDetail-uProfPic']")
+            this.pDUName = this.parent.querySelector("[data-id='postDetail-uName']")
+            this.pDTitle = this.parent.querySelector("[data-id='postDetail-title']")
+            this.pDContent = this.parent.querySelector("[data-id='postDetail-content']")
+            this.pDLikeBut = this.parent.querySelector("[data-id='postDetail-like']")
+            this.pDShareBut = this.parent.querySelector("[data-id='postDetail-share']")
+            this.PDImgCElem = this.parent.querySelector("[data-id='postDetail-imgs']")
+            this.pDCSecTitle = this.parent.querySelector("[data-id='_postDetail-cSecTitle']")
+            this.pDComments = this.parent.querySelector("[data-id='postDetail-comments']")
+            this.pDNCSec = this.parent.querySelector("[data-id='postDetail-nCSec']")
+            this.pDNCSec.style.display = "none"
+            this.pDNCText = this.parent.querySelector("[data-id='_postDetail-nCText']")
+            this.pDNCSend = this.parent.querySelector("[data-id='_postDetail-nCSend']")
+            if (uid) {
+                this.pDNCSec.style.display = "flex"
+                this.pDNCSend.onclick = () => this.sendCom()
+            }
+            this.pDLikeBut.onclick = e => this.likeButListener(e)
+            this.pDShareBut.onclick = e => {
+                navigator.clipboard.writeText(window.location.origin + "/posts/" + this.pid)
+                alert(getDictItemAttr("ACopied", "txt"))
+            }
+            await this.load()
+        }
+
+        PostDetail.prototype.load = async function () {
+            try {
+                var res
+                res = await (await fetch(`/api/posts/${this.pid}/`)).json()
+                this.pDUProfPic.src = res.prof_pic ? res.prof_pic : "/static/profPics/default.jpg";
+                this.pDUName.innerText = res.name
+                this.pDUName.href = `/u/${res.uid}`
+                this.pDTitle.innerText = res.title ? res.title : ""
+                this.pDContent.innerText = res.text
+                this.pDLikeBut.dataset.state = res.liked ? 2 : 0
+                this.pDLikeBut.querySelector("[data-id='postDetail-likes']").innerText = res.likes ? res.likes : ""
+                this.pDCSecTitle.innerText = `${getDictItemAttr(this.pDCSecTitle.dataset.id, "txt")}(${res.comments}) :`
+                this.lastId = 2147483647
+                this.PDImgCElem.innerHTML = ""
+
+                if (typeof res.imgs != "undefined")
+                    for (let j of res.imgs) {
+                        var imgElem = document.createElement("a")
+                        imgElem.href = j
+                        imgElem.target = "_blank"
+                        imgElem.innerHTML = `<img src="${j}">`
+                        this.PDImgCElem.appendChild(imgElem)
+                    }
+
+                await this.comLoadComs()
+            } catch (e) {
+                alert(getDictItemAttr("AErrorLoading", "txt"))
+                console.log(e)
+                throw e
+            }
+        }
+
+        PostDetail.prototype.scrollListener = function () {
+            if (((window.innerHeight + window.pageYOffset) - document.body.offsetHeight) > -100)
+                this.comLoadComs()
+        }
+
+        PostDetail.prototype.likeButListener = async function (e) {
+            if (this.liking == false)
+                this.liking = true
+            else return
+
+            var postElem
+            var butElem
+            var butElemText
+            if (!uid) {
+                alert(getDictItemAttr("AErrorNoLogin", "txt"))
+                this.liking = false;
+                return
+            } else if (butElem = e.target.closest("[data-id='postDetail-like']")) {
+                if (!uid) {
+                    alert(getDictItemAttr("AErrorNoLogin", "txt"))
+                    this.liking = false;
+                    return
+                }
+                butElemText = butElem.querySelector("span")
+
+                var ogState = butElem.dataset.state
+                butElem.dataset.state = "1"
+                try {
+                    var res = await fetch(`/api/posts/${this.pid}/likes/`, { method: ogState == 2 ? "delete" : "post" })
+                    if (res.status != 200)
+                        if (res.status == 401) {
+                            alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                            this.liking = false
+                            logout()
+                            return
+                        }
+                        else
+                            throw `status:${res.status}`
+
+                    butElem.dataset.state = ogState == 2 ? "0" : "2"
+
+                    if (ogState == 2)
+                        if (butElemText.innerText == 1)
+                            butElemText.innerText = ""
+                        else
+                            butElemText.innerText--
+                    else
+                        butElemText.innerText++
+                    clearCache()
+                } catch (ex) {
+                    alert(getDictItemAttr("AErrorOccured", "txt"))
+                    butElem.dataset.state = ogState
+                    console.log(ex)
+                }
+            }
+            this.liking = false
+        }
+
+        PostDetail.prototype.comLoadComs = async function () {
+            if (!this.loadingCom && this.lastId)
+                this.loadingCom = true
+            else return
+
+            var res
+            try {
+                res = await (await fetch(`/api/posts/${this.pid}/comments/?lastId=${this.lastId}`)).json()
+                if (!res.comments.length) {
+                    this.lastId = 0
+                    if (!this.pDComments.querySelector("div"))
+                        this.pDComments.innerHTML = `<div data-id='_noContent'>${getDictItemAttr("_noContent", "txt")}<div>`
+                    this.loadingCom = false
+                    return
+                }
+                let child
+                for (let i of res.comments) {
+                    child = document.createElement("div")
+                    child.className = "comment"
+                    child.dataset.id = i.cid
+                    child.innerHTML = `<div class="comment-uSec">
+                        <img src="${i.prof_pic ? i.prof_pic : "/static/profPics/default.jpg"}"
+                         class="comment-uProfPic">
+                        <a class="ilink" href="/u/${i.uid}">${i.name}</a>
+                        </div>
+                        <p class="comment-content uContent">${i.text}</p>`
+                    this.pDComments.appendChild(child)
+                }
+                this.lastId = res.comments[res.comments.length - 1].cid
+            } catch (e) {
+                alert(getDictItemAttr("AErrorLoading", "txt"))
+                console.log(e)
+            }
+            this.loadingCom = false
+        }
+
+        PostDetail.prototype.sendCom = async function () {
+            if (!this.sending)
+                this.sending = true
+            else return
+            try {
+                var res = await fetch(`/api/posts/${this.pid}/comments/`, {
+                    method: "post",
+                    headers: { "Content-type": "application/json" },
+                    body: `{"text":"${this.pDNCText.value}"}`
+                })
+                if (res.status == 200) {
+                    alert(getDictItemAttr("ASent", "txt"))
+                    this.pDNCText.value = ""
+                    clearCache()
+                    this.reload()
+                }
+                else if (res.status == 400)
+                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                else if (res.status == 401) {
+                    alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                    this.sending = false;
+                    logout()
+                    return
+                }
+                else
+                    alert(getDictItemAttr("AErrorSending", "txt"))
+            } catch (e) {
+                alert(getDictItemAttr("AErrorSending", "txt"))
+                console.log(e())
+            }
+            this.sending = false;
+        }
+
+        PostDetail.prototype.reload = function () {
+            this.pDComments.innerHTML = ""
+            this.lastId = 2147483647
+            this.load()
+        }
+
+        PostDetail.prototype.onShow = async function () {
+            window.addEventListener("scroll", this.scrollListenerWrapper = e => this.scrollListener(e))
+            document.title = "Post"
+        }
+        PostDetail.prototype.onHide = function () { //after hide
+            window.removeEventListener("scroll", this.scrollListenerWrapper)
+        }
+
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            routes[0] = { path: /^(\/(posts\/?)?)?$/, cons: MPost }
+            routes[1] = { path: /^\/login\/?$/, cons: LoginPage }
+            routes[2] = { path: /^\/posts\/\d+\/?$/, cons: PostDetail }
+            routes[3] = { path: /^\/u\/\d+$/, cons: UserProf }
+            routes[4] = { path: /^\/u\/\d+\/(following)|(followers)$/, cons: folwingFolwersOf }
+            routes[5] = { path: /^\/signup\/?$/, cons: SignupPage }
+            routes[6] = { path: /^\/u\/\d+\/edit\/?$/, cons: uEditPage }
+            routes[7] = { path: /^\/search(\/.*)?$/, cons: SearchPage }
+            loadingElem = document.querySelector("[data-id='loading']")
+            mainElem = document.querySelector("[data-id='main']")
+
+            var routeObj = langRoutes[0]
+            for (let i of langRoutes)
+                if (i.name.toLowerCase().indexOf(localLang.toLowerCase()) === 0)
+                    routeObj = i
+            document.documentElement.lang = routeObj.name
+
+            try {
+                dictionary = await (await fetch(routeObj.path)).json()
+            } catch (e) {
+                dictionary = await (await fetch("/static/lang/en.json")).json()
+                alert("Your language is not supported.")
+                console.log(e)
+            }
+
+
+            window.addEventListener("click", function (e) {
+                if (e.target.matches(".ilink")) {
+                    e.preventDefault()
+                    router(e.target.href)
+                }
+            })
+
+            window.addEventListener("popstate", () => router())
+
+            try {
+                uid = (await (await fetch("/api/whoami/")).json()).id
+            }
+            catch (e) { }
+
+            mainNav.init()
+
+            router()
+            console.log("loaded on " + new Date())
+        })
+    </script>
+</head>
+
+<body>
+    <div data-id="mainNav">
+        <ul>
+            <li data-id="mainNav-lSec">
+                <a href="/" class="ilink">Home</a>
+                <button data-id="mainNav-mSearchTog"
+                    onclick="document.querySelector('[data-id=\'mainNav-midSec\']').dataset.open='1'">
+                    <img src="/static/icons/search.svg">
+                </button>
+            </li>
+            <li data-id="mainNav-midSec" data-open="0">
+                <div data-id="mainNav-midSecMain">
+                    <input type="text" data-id="_mainNav-searchBox"><button data-id="_mainNav-searchBut">search</button>
+                </div>
+                <button data-id="mainNav-mSearchClose"
+                    onclick="document.querySelector('[data-id=\'mainNav-midSec\']').dataset.open='0'">&#9587</button>
+            </li>
+            <li data-id="mainNav-rSec"> </li>
+        </ul>
+    </div>
+
+    <main data-id="main" style="width: 100%;">
+
+        <div data-id="loading">
+            <h1>Loading . . .</h1>
+        </div>
+
+    </main>
+</body>
+
+</html>
