@@ -123,7 +123,7 @@
             try {
                 await fetch("/api/logout/")
             } catch {
-                alert(getDictItemAttr("AErrorLogout", "txt"))
+                pushAlert(getDictItemAttr("AErrorLogout", "txt"))
             }
             uid = null
             reloadAll("/")
@@ -160,7 +160,7 @@
                             </button>`
 
                     } catch (e) {
-                        alert(getDictItemAttr("AErrorLoading", "txt"))
+                        pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                         console.log(e)
                     }
                 else
@@ -209,7 +209,7 @@
             }
             else if (butElem = e.target.closest(".post-like")) {
                 if (!uid) {
-                    alert(getDictItemAttr("AErrorNoLogin", "txt"))
+                    pushAlert(getDictItemAttr("AErrorNoLogin", "txt"))
                     this.working = false;
                     return
                 }
@@ -221,7 +221,7 @@
                     var res = await fetch(`/api/posts/${butElem.closest(".post").dataset.id}/likes/`, { method: ogState == 2 ? "delete" : "post" })
                     if (res.status != 200)
                         if (res.status == 401) {
-                            alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                            pushAlert(getDictItemAttr("AErrorLoginTimeout", "txt"))
                             this.working = false
                             logout()
                             return
@@ -240,14 +240,14 @@
                         butElemText.innerText++
                     clearCache()
                 } catch (ex) {
-                    alert(getDictItemAttr("AErrorOccured", "txt"))
+                    pushAlert(getDictItemAttr("AErrorOccured", "txt"))
                     butElem.dataset.state = ogState
                     console.log(ex)
                 }
             }
             else if (butElem = e.target.closest(".post-share")) {
                 navigator.clipboard.writeText(window.location.origin + "/posts/" + butElem.closest(".post").dataset.id)
-                alert(getDictItemAttr("ACopied", "txt"))
+                pushAlert(getDictItemAttr("ACopied", "txt"))
             }
             else if (postElem = e.target.closest(".post"))
                 router("/posts/" + postElem.dataset.id)
@@ -319,7 +319,7 @@
                 }
                 this.lastId = res.posts[res.posts.length - 1].pid
             } catch (e) {
-                alert(getDictItemAttr("AErrorLoading", "txt"))
+                pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                 console.log(e)
             }
             this.working = false
@@ -489,7 +489,7 @@
                     body: JSON.stringify(reqBody)
                 })
                 if (res.status == 200 || res.status == 202) {
-                    alert(getDictItemAttr("ASent", "txt"))
+                    pushAlert(getDictItemAttr("ASent", "txt"))
                     this.newPostSecTitle.value = ""
                     this.newPostSecText.value = ""
                     this.newPostSec.style.display = "none"
@@ -499,17 +499,17 @@
                     this.postsObj.reload()
                 }
                 else if (res.status == 400)
-                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                    pushAlert(getDictItemAttr("AErrorFormat", "txt"))
                 else if (res.status == 401) {
-                    alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                    pushAlert(getDictItemAttr("AErrorLoginTimeout", "txt"))
                     this.nPWorking = false;
                     logout()
                     return
                 }
                 else
-                    alert(getDictItemAttr("AErrorSending", "txt"))
+                    pushAlert(getDictItemAttr("AErrorSending", "txt"))
             } catch (e) {
-                alert(getDictItemAttr("AErrorSending", "txt"))
+                pushAlert(getDictItemAttr("AErrorSending", "txt"))
                 console.log(e)
             }
             this.nPWorking = false;
@@ -652,7 +652,7 @@
                 }
                 this.lastId = res.users[res.users.length - 1].uid
             } catch (e) {
-                alert(getDictItemAttr("AErrorLoading", "txt"))
+                pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                 console.log(e)
             }
             this.working = false
@@ -746,7 +746,7 @@
                 e.target.innerText = ogState == 2 ? "+ " + getDictItemAttr("_userProf-folButton0", "txt") : getDictItemAttr("_userProf-folButton1", "txt")
                 clearCache()
             } catch (ex) {
-                alert(getDictItemAttr("AErrorOccured", "txt"))
+                pushAlert(getDictItemAttr("AErrorOccured", "txt"))
                 e.target.dataset.state = ogState
                 console.log(ex)
             }
@@ -810,7 +810,7 @@
                 this.postsObj = new Posts(this.parent.querySelector("[data-id='userProf-uPosts']"), this.uid)
             }
             catch (e) {
-                alert(getDictItemAttr("AErrorLoading", "txt"))
+                pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                 console.log(e)
                 throw e
             }
@@ -856,16 +856,16 @@
             var uname = this.unameField.value
             var password = this.pwdField.value
             if (uname === "") {
-                alert(getDictItemAttr("AErrorIncompCred", "txt"))
+                pushAlert(getDictItemAttr("AErrorIncompCred", "txt"))
                 return
             }
             try {
                 await login(uname, password)
             } catch (e) {
                 if (e === 401)
-                    alert(getDictItemAttr("AErrorWrongCred", "txt"))
+                    pushAlert(getDictItemAttr("AErrorWrongCred", "txt"))
                 else
-                    alert(getDictItemAttr("AErrorLogin", "txt"))
+                    pushAlert(getDictItemAttr("AErrorLogin", "txt"))
                 console.log(e)
             }
         }
@@ -912,7 +912,7 @@
         SignupPage.prototype.userSignup = async function () {
             if (this.unameField.value == "" || this.emailField.value == ""
                 || this.pwdCField.value != this.pwdField.value) {
-                alert(getDictItemAttr("AErrorWrongRegCred", "txt"))
+                pushAlert(getDictItemAttr("AErrorWrongRegCred", "txt"))
                 return
             }
             try {
@@ -922,15 +922,15 @@
                     body: `{"name":"${this.unameField.value}","email":"${this.emailField.value}","password":"${this.pwdField.value}"}`
                 })
                 if (res.status == 200) {
-                    alert(getDictItemAttr("AErrorRegisterSucc", "txt"))
+                    pushAlert(getDictItemAttr("AErrorRegisterSucc", "txt"))
                     router("/login")
                 }
                 else if (res.status == 409)
-                    alert(getDictItemAttr("AErrorNameTaken", "txt"))
+                    pushAlert(getDictItemAttr("AErrorNameTaken", "txt"))
                 else
-                    alert(getDictItemAttr("AErrorWrongRegCred", "txt"))
+                    pushAlert(getDictItemAttr("AErrorWrongRegCred", "txt"))
             } catch (e) {
-                alert(getDictItemAttr("AErrorOccured", "txt"))
+                pushAlert(getDictItemAttr("AErrorOccured", "txt"))
                 console.log(e)
             }
         }
@@ -1014,12 +1014,12 @@
                 var res = await fetch(`/api/u/${this.uid}/?mode=full`)
                 if (res.status != 200) {
                     if (res.status == 401) {
-                        alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                        pushAlert(getDictItemAttr("AErrorLoginTimeout", "txt"))
                         logout()
                         exit;
                     }
                     else {
-                        alert(getDictItemAttr("AErrorLoading", "txt"))
+                        pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                         return
                     }
                 }
@@ -1032,7 +1032,7 @@
                 this.profPic.src = jobj.prof_pic ? jobj.prof_pic : "/static/profPics/default.jpg"
 
             } catch (e) {
-                alert(getDictItemAttr("AErrorLoading", "txt"))
+                pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                 throw e
             }
         }
@@ -1053,7 +1053,7 @@
             try {
                 var reqBody = { user: {}, password: this.form["pwdCur"].value }
                 if (this.form["pwd"].value != this.form["pwdCon"].value) {
-                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                    pushAlert(getDictItemAttr("AErrorFormat", "txt"))
                     this.form["pwdCon"].oninput()
                     this.patching = false
                     return
@@ -1071,7 +1071,7 @@
                     reqBody.user.prof_pic = this.profPic.src.split("base64,")[1]
 
                 if (!Object.keys(reqBody.user).length) {
-                    alert(getDictItemAttr("AErrorNoChange", "txt"))
+                    pushAlert(getDictItemAttr("AErrorNoChange", "txt"))
                     this.patching = false
                     return
                 }
@@ -1088,21 +1088,21 @@
                     this.patching = false
                     return
                 } else if (res.status == 400)
-                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                    pushAlert(getDictItemAttr("AErrorFormat", "txt"))
                 else if (res.status == 403)
-                    alert(getDictItemAttr("AErrorWrongPass", "txt"))
+                    pushAlert(getDictItemAttr("AErrorWrongPass", "txt"))
                 else if (res.status == 401) {
-                    alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                    pushAlert(getDictItemAttr("AErrorLoginTimeout", "txt"))
                     this.patching = false;
                     logout()
                     return
                 } else if (res.status == 409) {
-                    alert(getDictItemAttr("AErrorNameTaken", "txt"))
+                    pushAlert(getDictItemAttr("AErrorNameTaken", "txt"))
                 }
                 else
-                    alert(getDictItemAttr("AErrorOccured", "txt"))
+                    pushAlert(getDictItemAttr("AErrorOccured", "txt"))
             } catch (e) {
-                alert(getDictItemAttr("AErrorOccured", "txt"))
+                pushAlert(getDictItemAttr("AErrorOccured", "txt"))
                 console.log(e)
             }
             this.patching = false;
@@ -1168,7 +1168,7 @@
             this.pDLikeBut.onclick = e => this.likeButListener(e)
             this.pDShareBut.onclick = e => {
                 navigator.clipboard.writeText(window.location.origin + "/posts/" + this.pid)
-                alert(getDictItemAttr("ACopied", "txt"))
+                pushAlert(getDictItemAttr("ACopied", "txt"))
             }
             await this.load()
         }
@@ -1199,7 +1199,7 @@
 
                 await this.comLoadComs()
             } catch (e) {
-                alert(getDictItemAttr("AErrorLoading", "txt"))
+                pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                 console.log(e)
                 throw e
             }
@@ -1219,12 +1219,12 @@
             var butElem
             var butElemText
             if (!uid) {
-                alert(getDictItemAttr("AErrorNoLogin", "txt"))
+                pushAlert(getDictItemAttr("AErrorNoLogin", "txt"))
                 this.liking = false;
                 return
             } else if (butElem = e.target.closest("[data-id='postDetail-like']")) {
                 if (!uid) {
-                    alert(getDictItemAttr("AErrorNoLogin", "txt"))
+                    pushAlert(getDictItemAttr("AErrorNoLogin", "txt"))
                     this.liking = false;
                     return
                 }
@@ -1236,7 +1236,7 @@
                     var res = await fetch(`/api/posts/${this.pid}/likes/`, { method: ogState == 2 ? "delete" : "post" })
                     if (res.status != 200)
                         if (res.status == 401) {
-                            alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                            pushAlert(getDictItemAttr("AErrorLoginTimeout", "txt"))
                             this.liking = false
                             logout()
                             return
@@ -1255,7 +1255,7 @@
                         butElemText.innerText++
                     clearCache()
                 } catch (ex) {
-                    alert(getDictItemAttr("AErrorOccured", "txt"))
+                    pushAlert(getDictItemAttr("AErrorOccured", "txt"))
                     butElem.dataset.state = ogState
                     console.log(ex)
                 }
@@ -1293,7 +1293,7 @@
                 }
                 this.lastId = res.comments[res.comments.length - 1].cid
             } catch (e) {
-                alert(getDictItemAttr("AErrorLoading", "txt"))
+                pushAlert(getDictItemAttr("AErrorLoading", "txt"))
                 console.log(e)
             }
             this.loadingCom = false
@@ -1310,23 +1310,23 @@
                     body: `{"text":"${this.pDNCText.value}"}`
                 })
                 if (res.status == 200) {
-                    alert(getDictItemAttr("ASent", "txt"))
+                    pushAlert(getDictItemAttr("ASent", "txt"))
                     this.pDNCText.value = ""
                     clearCache()
                     this.reload()
                 }
                 else if (res.status == 400)
-                    alert(getDictItemAttr("AErrorFormat", "txt"))
+                    pushAlert(getDictItemAttr("AErrorFormat", "txt"))
                 else if (res.status == 401) {
-                    alert(getDictItemAttr("AErrorLoginTimeout", "txt"))
+                    pushAlert(getDictItemAttr("AErrorLoginTimeout", "txt"))
                     this.sending = false;
                     logout()
                     return
                 }
                 else
-                    alert(getDictItemAttr("AErrorSending", "txt"))
+                    pushAlert(getDictItemAttr("AErrorSending", "txt"))
             } catch (e) {
-                alert(getDictItemAttr("AErrorSending", "txt"))
+                pushAlert(getDictItemAttr("AErrorSending", "txt"))
                 console.log(e())
             }
             this.sending = false;
@@ -1369,7 +1369,7 @@
                 dictionary = await (await fetch(routeObj.path)).json()
             } catch (e) {
                 dictionary = await (await fetch("/static/lang/en.json")).json()
-                alert("Your language is not supported.")
+                pushAlert("Your language is not supported.")
                 console.log(e)
             }
 

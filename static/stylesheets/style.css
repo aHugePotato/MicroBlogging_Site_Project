@@ -220,10 +220,11 @@ textarea {
 [data-id="alertSrc-alertArea-infoSec"] {
     display: flex;
     gap: 1em;
+    margin-bottom: 1em;
 }
 
 [data-id="alertSrc-alertArea-alerts"] {
-    margin-bottom: 1em;
+    padding-top: 0.3em;
     word-break: break-all;
 }
 
