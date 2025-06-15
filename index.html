@@ -99,6 +99,7 @@
                 activePages[activePages.length - 1].obj.onHide()
             }
             activePages = []
+            alertsElem.innerHTML = ""
             mainNav.close()
             mainNav.init()
             router(after)
@@ -1377,8 +1378,8 @@
             alertElem = document.querySelector("[data-id='alertSrc']")
             alertsElem = alertElem.querySelector("[data-id='alertSrc-alertArea-alerts']")
             alertElem.querySelector("[data-id='alertSrc-alertArea-close']").onclick = () => alertElem.style.display = "none"
-            alertElem.querySelector("[data-id='alertSrc-alertArea-okBut']").onclick = () => { alertsElem.innerText = "", alertElem.style.display = "none" }
-            
+            alertElem.querySelector("[data-id='alertSrc-alertArea-okBut']").onclick = () => { alertsElem.innerHTML = "", alertElem.style.display = "none" }
+
 
             window.addEventListener("click", function (e) {
                 if (e.target.matches(".ilink")) {
