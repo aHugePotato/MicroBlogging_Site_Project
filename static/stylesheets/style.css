@@ -192,6 +192,57 @@ textarea {
 }
 
 
+[data-id="alertSrc"] {
+    position: fixed;
+    top: 0%;
+    left: 0%;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: none;
+}
+
+[data-id="alertSrc-alertArea"] {
+    margin: auto;
+    margin-top: 65px;
+    width: 100%;
+    max-width: min(750px, calc(100vw - 3em));
+    font-size: 1.5em;
+}
+
+[data-id="alertSrc-alertArea-mainCtrls"] {
+    background-color: white;
+    border-radius: 1em;
+    padding: 1em;
+    clear: both;
+}
+
+[data-id="alertSrc-alertArea-infoSec"] {
+    display: flex;
+    gap: 1em;
+}
+
+[data-id="alertSrc-alertArea-alerts"] {
+    margin-bottom: 1em;
+    word-break: break-all;
+}
+
+[data-id="alertSrc-alertArea-okBut"] {
+    margin-top: 0.5em;
+    margin-left: auto;
+    margin-right: 0%;
+    display: block;
+}
+
+button[data-id="alertSrc-alertArea-close"],
+button[data-id="alertSrc-alertArea-close"]:hover {
+    background-color: transparent;
+    color: white;
+    margin-bottom: 0.5em;
+    float: right;
+}
+
+
 [data-id="mainNav"] {
     position: sticky;
     top: 0;

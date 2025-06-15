@@ -32,7 +32,15 @@
         var uid = null
 
         var loadingElem
+        var alertElem
+        var alertsElem
         var mainElem
+
+        function pushAlert(a) {
+            alertsElem.innerHTML += (a + "</br>")
+            alertElem.style.display = "block"
+        }
+
         async function router(dst) {
             if (isSwitching)
                 return
@@ -1366,6 +1374,12 @@
             }
 
 
+            alertElem = document.querySelector("[data-id='alertSrc']")
+            alertsElem = alertElem.querySelector("[data-id='alertSrc-alertArea-alerts']")
+            alertElem.querySelector("[data-id='alertSrc-alertArea-close']").onclick = () => alertElem.style.display = "none"
+            alertElem.querySelector("[data-id='alertSrc-alertArea-okBut']").onclick = () => { alertsElem.innerText = "", alertElem.style.display = "none" }
+            
+
             window.addEventListener("click", function (e) {
                 if (e.target.matches(".ilink")) {
                     e.preventDefault()
@@ -1413,6 +1427,18 @@
 
         <div data-id="loading">
             <h1>Loading . . .</h1>
+        </div>
+        <div data-id="alertSrc">
+            <div data-id="alertSrc-alertArea">
+                <button data-id="alertSrc-alertArea-close">&#9587;</button>
+                <div data-id="alertSrc-alertArea-mainCtrls">
+                    <div data-id="alertSrc-alertArea-infoSec">
+                        <h2>!</h2>
+                        <p data-id="alertSrc-alertArea-alerts"></p>
+                    </div>
+                    <button data-id="alertSrc-alertArea-okBut">OK</button>
+                </div>
+            </div>
         </div>
 
     </main>
