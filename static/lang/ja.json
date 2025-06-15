@@ -1,5 +1,5 @@
 {
-    "_mainNav-searchBox":{"pH":"ここに入力"},
+    "_mainNav-searchBox":{"pH":"ここで検索"},
     "_mainNav-searchBut":{"txt":"検索"},
     "_mainNav-loginButton0":{"txt":"ログイン"},
     "_mainNav-loginButton1":{"txt":"ログアウト"},
@@ -46,9 +46,9 @@
     "_uEditPage-form-emailL":{"txt":"eメール"},
     "_uEditPage-form-email":{"pH":"eメール(必須)"},
     "_uEditPage-form-unameL":{"txt":"名前"},
-    "_uEditPage-form-uname":{"pH":"名前を入力(必須)"},
+    "_uEditPage-form-uname":{"pH":"名前(必須)"},
     "_uEditPage-form-desL":{"txt":"自己紹介"},
-    "_uEditPage-form-des":{"pH":"自己紹介"},
+    "_uEditPage-form-des":{"pH":"あなたの自己紹介"},
     "_uEditPage-form-pwdL":{"txt":"パスワード"},
     "_uEditPage-form-pwd":{"pH":"新しいパスワードを入力"},
     "_uEditPage-form-pwdConL":{"txt":"パスワード確認"},

@@ -73,7 +73,7 @@
     "AErrorWrongRegCred":{"txt":"Please check your input."},
     "AErrorNameTaken":{"txt":"This user name is already in use."},
     "AErrorRegisterSucc":{"txt":"Sign up success."},
-    "AErrorNoChange":{"txt":"Nothing has changed"},
+    "AErrorNoChange":{"txt":"Nothing has changed."},
     "_noContent":{"txt":"Nothing is here."}
     
 }   
